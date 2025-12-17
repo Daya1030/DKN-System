@@ -94,7 +94,59 @@ export default function Documents(){
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
+      // Store file data in localStorage
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        const fileData = {
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          content: event.target?.result,
+          uploadedAt: new Date().toISOString()
+        }
+        localStorage.setItem(`file-${file.name}`, JSON.stringify(fileData))
+      }
+      reader.readAsDataURL(file)
       setFormData({ ...formData, fileName: file.name })
+    }
+  }
+
+  const handleDownloadFile = (fileName: string) => {
+    try {
+      const fileData = localStorage.getItem(`file-${fileName}`)
+      if (fileData) {
+        const parsed = JSON.parse(fileData)
+        const link = document.createElement('a')
+        link.href = parsed.content
+        link.download = fileName
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        push(`Downloading ${fileName}...`)
+      } else {
+        push('File not found. Please re-upload.')
+      }
+    } catch (error) {
+      push('Error downloading file')
+    }
+  }
+
+  const handleViewFile = (doc: UploadedDoc) => {
+    try {
+      const fileData = localStorage.getItem(`file-${doc.fileName}`)
+      if (fileData) {
+        const parsed = JSON.parse(fileData)
+        // Open in new tab
+        const link = document.createElement('a')
+        link.href = parsed.content
+        link.target = '_blank'
+        link.click()
+        push(`Opening ${doc.fileName}...`)
+      } else {
+        push('File content not available')
+      }
+    } catch (error) {
+      push('Error opening file')
     }
   }
 
@@ -172,33 +224,39 @@ export default function Documents(){
           <h3 style={{ color: 'var(--navy)', marginBottom: 16 }}>📤 My Uploaded Documents</h3>
           <div style={{ display: 'grid', gap: 12 }}>
             {uploadedDocs.map(doc => (
-              <div key={doc.id} className="card" style={{ padding: '16px', borderLeft: `4px solid ${doc.status === 'approved' ? '#34d399' : doc.status === 'rejected' ? '#ef4444' : '#f6c85f'}` }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                      <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--navy)' }}>{doc.title}</div>
-                      <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700, background: doc.status === 'approved' ? '#d1fae5' : doc.status === 'rejected' ? '#fee2e2' : '#fef3c7', color: doc.status === 'approved' ? '#065f46' : doc.status === 'rejected' ? '#7f1d1d' : '#92400e' }}>
-                        {doc.status.toUpperCase()}
-                      </span>
-                    </div>
-                    <p style={{ margin: '4px 0', color: 'var(--muted)', fontSize: '0.9rem' }}>{doc.description}</p>
-                    <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 8, fontSize: '0.85rem', color: 'var(--muted)' }}>
-                      <span>📄 {doc.fileName}</span>
-                      <span>👤 {doc.uploadedBy}</span>
-                      <span>📅 {doc.uploadedAt}</span>
-                      {doc.approvedBy && <span>✓ Approved by {doc.approvedBy}</span>}
-                    </div>
-                    {doc.rejectionReason && <div style={{ marginTop: 8, padding: '8px', background: '#fee2e2', borderRadius: '4px', color: '#7f1d1d', fontSize: '0.85rem' }}>❌ Reason: {doc.rejectionReason}</div>}
-                    {doc.tags.length > 0 && (
-                      <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        {doc.tags.map((tag, idx) => (
-                          <span key={idx} style={{ padding: '4px 10px', background: '#e8f4f8', color: '#0369a1', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 600 }}>
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+              <div key={doc.id} className="card" style={{ padding: '16px', borderLeft: `4px solid ${doc.status === 'approved' ? '#34d399' : doc.status === 'rejected' ? '#ef4444' : '#f6c85f'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--navy)' }}>{doc.title}</div>
+                    <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700, background: doc.status === 'approved' ? '#d1fae5' : doc.status === 'rejected' ? '#fee2e2' : '#fef3c7', color: doc.status === 'approved' ? '#065f46' : doc.status === 'rejected' ? '#7f1d1d' : '#92400e' }}>
+                      {doc.status.toUpperCase()}
+                    </span>
                   </div>
+                  <p style={{ margin: '4px 0', color: 'var(--muted)', fontSize: '0.9rem' }}>{doc.description}</p>
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 8, fontSize: '0.85rem', color: 'var(--muted)' }}>
+                    <span>📄 {doc.fileName}</span>
+                    <span>👤 {doc.uploadedBy}</span>
+                    <span>📅 {doc.uploadedAt}</span>
+                    {doc.approvedBy && <span>✓ Approved by {doc.approvedBy}</span>}
+                  </div>
+                  {doc.rejectionReason && <div style={{ marginTop: 8, padding: '8px', background: '#fee2e2', borderRadius: '4px', color: '#7f1d1d', fontSize: '0.85rem' }}>❌ Reason: {doc.rejectionReason}</div>}
+                  {doc.tags.length > 0 && (
+                    <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {doc.tags.map((tag, idx) => (
+                        <span key={idx} style={{ padding: '4px 10px', background: '#e8f4f8', color: '#0369a1', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 600 }}>
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexShrink: 0, alignItems: 'flex-start' }}>
+                  <button onClick={() => handleViewFile(doc)} title="Open file" style={{ padding: '8px 12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem', whiteSpace: 'nowrap', transition: 'transform 0.2s' }} onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')} onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}>
+                    👁️ View
+                  </button>
+                  <button onClick={() => handleDownloadFile(doc.fileName)} title="Download file" style={{ padding: '8px 12px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem', whiteSpace: 'nowrap', transition: 'transform 0.2s' }} onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')} onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}>
+                    ⬇️ Download
+                  </button>
                 </div>
               </div>
             ))}
@@ -230,7 +288,10 @@ export default function Documents(){
                       </div>
                     )}
                   </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
+                  <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                    <button onClick={() => handleViewFile(doc)} title="Open file" style={{ padding: '8px 12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem', whiteSpace: 'nowrap', transition: 'transform 0.2s' }} onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')} onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}>
+                      👁️ View
+                    </button>
                     <button onClick={() => handleApproveDocument(doc.id, doc.title)} style={{ padding: '8px 16px', background: '#34d399', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem' }}>
                       ✓ Approve
                     </button>
@@ -254,19 +315,25 @@ export default function Documents(){
         ) : (
           <div style={{ display: 'grid', gap: 12 }}>
             {approvedDocs.map(d => (
-              <Link key={d.id} to={`/documents/${d.id}`} style={{ textDecoration: 'none' }}>
-                <div className="card" style={{ padding: '16px', cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 16px rgba(0,0,0,0.1)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--navy)' }}>
-                        {d.title}
-                      </div>
-                      <p style={{ margin: '4px 0', color: 'var(--muted)', fontSize: '0.9rem' }}>{d.description}</p>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--muted)' }}>📤 By {d.uploadedBy} • 📅 {d.uploadedAt} • 🏷️ {d.tags.join(', ')}</div>
+              <div key={d.id} className="card" style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                <Link to={`/documents/${d.id}`} style={{ textDecoration: 'none', flex: 1 }}>
+                  <div style={{ cursor: 'pointer' }}>
+                    <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--navy)' }}>
+                      {d.title}
                     </div>
+                    <p style={{ margin: '4px 0', color: 'var(--muted)', fontSize: '0.9rem' }}>{d.description}</p>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--muted)' }}>📤 By {d.uploadedBy} • 📅 {d.uploadedAt} • 🏷️ {d.tags.join(', ')}</div>
                   </div>
+                </Link>
+                <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                  <button onClick={() => handleViewFile(d)} title="Open file" style={{ padding: '8px 12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem', whiteSpace: 'nowrap', transition: 'transform 0.2s' }} onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')} onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}>
+                    👁️ View
+                  </button>
+                  <button onClick={() => handleDownloadFile(d.fileName)} title="Download file" style={{ padding: '8px 12px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem', whiteSpace: 'nowrap', transition: 'transform 0.2s' }} onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')} onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}>
+                    ⬇️ Download
+                  </button>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         )}

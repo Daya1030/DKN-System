@@ -2,12 +2,54 @@ import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { fetchDocumentById } from '../api'
 import RecommendationPanel from '../components/RecommendationPanel'
+import { useToast } from '../contexts/ToastContext'
 
 export default function DocumentDetail(){
   const { id } = useParams()
   const navigate = useNavigate()
+  const { push } = useToast()
   const [doc, setDoc] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [fileContent, setFileContent] = useState<string>('')
+
+  const handleDownloadFile = (fileName: string) => {
+    try {
+      const fileData = localStorage.getItem(`file-${fileName}`)
+      if (fileData) {
+        const parsed = JSON.parse(fileData)
+        const link = document.createElement('a')
+        link.href = parsed.content
+        link.download = fileName
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        push(`Downloading ${fileName}...`)
+      } else {
+        push('File not found. Please check if it was properly uploaded.')
+      }
+    } catch (error) {
+      push('Error downloading file')
+    }
+  }
+
+  const handleViewFile = (fileName: string) => {
+    try {
+      const fileData = localStorage.getItem(`file-${fileName}`)
+      if (fileData) {
+        const parsed = JSON.parse(fileData)
+        // Open in new tab
+        const link = document.createElement('a')
+        link.href = parsed.content
+        link.target = '_blank'
+        link.click()
+        push(`Opening ${fileName}...`)
+      } else {
+        push('File content not available')
+      }
+    } catch (error) {
+      push('Error opening file')
+    }
+  }
 
   useEffect(() => {
     if (!id) return
@@ -64,11 +106,21 @@ export default function DocumentDetail(){
             ← Back to Documents
           </button>
           <h2 style={{ margin: '0 0 8px', color: 'var(--navy)' }}>{doc.title}</h2>
-          <div style={{ display: 'flex', gap: 16, fontSize: '0.9rem', color: 'var(--muted)' }}>
+          <div style={{ display: 'flex', gap: 16, fontSize: '0.9rem', color: 'var(--muted)', alignItems: 'center' }}>
             <span>Version {doc.version}</span>
             <span>Status: <strong>{doc.status}</strong></span>
             {doc.uploadedBy && <span>By {doc.uploadedBy}</span>}
             {doc.uploadedAt && <span>{doc.uploadedAt}</span>}
+            {doc.fileName && (
+              <div style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
+                <button onClick={() => handleViewFile(doc.fileName)} title="Open file" style={{ padding: '8px 12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem' }}>
+                  👁️ View
+                </button>
+                <button onClick={() => handleDownloadFile(doc.fileName)} title="Download file" style={{ padding: '8px 12px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem' }}>
+                  ⬇️ Download
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -88,6 +140,30 @@ export default function DocumentDetail(){
           <h3 style={{ color: 'var(--navy)' }}>Description</h3>
           <div className="card" style={{ padding: '16px', background: '#f9fafb' }}>
             <p>{doc.description}</p>
+          </div>
+        </section>
+      )}
+
+      {doc.fileName && (
+        <section>
+          <h3 style={{ color: 'var(--navy)' }}>📄 File Information</h3>
+          <div className="card" style={{ padding: '16px', background: '#f0f9ff', border: '2px solid #0369a1' }}>
+            <div style={{ display: 'grid', gap: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontWeight: 600, color: 'var(--navy)' }}>📎 {doc.fileName}</div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--muted)', marginTop: 4 }}>Click the buttons above to view or download this file</div>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => handleViewFile(doc.fileName)} style={{ padding: '10px 16px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', transition: 'transform 0.2s' }} onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')} onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}>
+                    👁️ View File
+                  </button>
+                  <button onClick={() => handleDownloadFile(doc.fileName)} style={{ padding: '10px 16px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', transition: 'transform 0.2s' }} onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')} onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}>
+                    ⬇️ Download File
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
       )}

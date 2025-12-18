@@ -1,7 +1,10 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 export default function Help(){
   const [open, setOpen] = useState(false)
+  const navigate = useNavigate()
+  
   return (
     <div>
       <button aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(s => !s)} title="AI Recommendations" style={{ background: 'linear-gradient(135deg, #3b82f6, #1e40af)', color: 'white', padding: '8px 12px', borderRadius: '6px', border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem' }}>🤖 AI</button>
@@ -28,7 +31,7 @@ export default function Help(){
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
             <button onClick={() => setOpen(false)} style={{ padding: '8px 16px', background: '#e5e7eb', color: '#1f2937', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem' }}>Close</button>
-            <button style={{ padding: '8px 16px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem' }}>Learn More</button>
+            <button onClick={() => { setOpen(false); navigate('/documents'); }} style={{ padding: '8px 16px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, fontSize: '0.9rem' }}>Learn More</button>
           </div>
         </div>
       )}

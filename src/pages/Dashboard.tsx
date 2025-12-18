@@ -182,17 +182,17 @@ export default function Dashboard() {
             <div style={{ background: 'white', borderRadius: '12px', padding: '32px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
               <h3 style={{ margin: '0 0 24px', fontSize: '1.2rem', fontWeight: 700, color: 'var(--navy)' }}>Quick Actions</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-                <button style={{ padding: '16px', background: 'var(--navy)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#1a3a5c'} onMouseLeave={(e) => e.currentTarget.style.background = 'var(--navy)'}>
+                <button onClick={() => navigate('/documents')} style={{ padding: '16px', background: 'var(--navy)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#1a3a5c'} onMouseLeave={(e) => e.currentTarget.style.background = 'var(--navy)'}>
                   📚 View Documents
                 </button>
-                <button style={{ padding: '16px', background: 'var(--gold)', color: 'var(--navy)', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#f0b845'} onMouseLeave={(e) => e.currentTarget.style.background = 'var(--gold)'}>
+                <button onClick={() => navigate('/communities')} style={{ padding: '16px', background: 'var(--gold)', color: 'var(--navy)', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#f0b845'} onMouseLeave={(e) => e.currentTarget.style.background = 'var(--gold)'}>
                   👥 Communities
                 </button>
-                <button style={{ padding: '16px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#059669'} onMouseLeave={(e) => e.currentTarget.style.background = '#10b981'}>
+                <button onClick={() => navigate('/notifications')} style={{ padding: '16px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#059669'} onMouseLeave={(e) => e.currentTarget.style.background = '#10b981'}>
                   🔔 Notifications
                 </button>
                 {role === 'Administrator' && (
-                  <button style={{ padding: '16px', background: '#f59e0b', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#d97706'} onMouseLeave={(e) => e.currentTarget.style.background = '#f59e0b'}>
+                  <button onClick={() => navigate('/admin')} style={{ padding: '16px', background: '#f59e0b', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#d97706'} onMouseLeave={(e) => e.currentTarget.style.background = '#f59e0b'}>
                     ⚙️ Admin Panel
                   </button>
                 )}

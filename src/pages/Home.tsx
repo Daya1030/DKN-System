@@ -1,6 +1,19 @@
 import React from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function Home(){
+  const navigate = useNavigate()
+  const { user } = useAuth()
+
+  const handleGetStarted = () => {
+    if (user) {
+      navigate('/dashboard')
+    } else {
+      navigate('/login')
+    }
+  }
+
   return (
     <>
       <section className="hero">
@@ -9,7 +22,7 @@ export default function Home(){
           <p style={{ color: 'var(--muted)', marginTop: 6 }}>Organize documents, projects and communities with trusted governance and role-based access.</p>
         </div>
         <div>
-          <button className="btn-cta">Get started</button>
+          <button onClick={handleGetStarted} className="btn-cta">Get started</button>
         </div>
       </section>
 

@@ -10,7 +10,7 @@ type AuthState = {
   country: string
   setRole: (r: Role) => void
   setCountry: (c: string) => void
-  login: (name: string, email: string, country: string, role: Role) => void
+  login: (name: string, email: string, country: string, role: Role, id?: string | number) => void
   logout: () => void
 }
 
@@ -32,8 +32,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch { return null }
   })
 
-  function login(name: string, email: string, country: string, userRole: Role) {
-    const u = { id: String(Date.now()), name, email, country, role: userRole }
+  function login(name: string, email: string, country: string, userRole: Role, id?: string | number) {
+    const u = { id: String(id || Date.now()), name, email, country, role: userRole }
     setUser(u)
     setRole(userRole)
     try { 

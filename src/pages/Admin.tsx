@@ -2,14 +2,17 @@ import React, { useEffect, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'
+const BACKEND_HINT = `Make sure backend is running at ${API_BASE}`
+
 interface User {
-  id: string
+  id: number
   name: string
   email: string
   role: string
   country: string
-  joinDate: string
-  status: 'active' | 'inactive'
+  created_at: string
+  active: boolean
 }
 
 export default function Admin() {
@@ -20,15 +23,12 @@ export default function Admin() {
   const [communities, setCommunities] = useState<any[]>([])
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'documents' | 'communities'>('overview')
   const [showUserForm, setShowUserForm] = useState(false)
-  const [newUser, setNewUser] = useState({ name: '', email: '', role: 'Consultant', country: 'North America', status: 'active' })
+  const [loading, setLoading] = useState(false)
+  const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'Consultant', country: 'USA' })
 
   useEffect(() => {
-    // Load users
-    try {
-      const saved = localStorage.getItem('dkn:admin-users')
-      if (saved) setUsers(JSON.parse(saved))
-    } catch {}
-
+    fetchUsers()
+    
     // Load documents
     try {
       const saved = localStorage.getItem('dkn:uploaded-docs')
@@ -42,68 +42,98 @@ export default function Admin() {
     } catch {}
   }, [])
 
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/users`)
+      if (response.ok) {
+        const data = await response.json()
+        setUsers(data)
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error)
+    }
+  }
+
   const pendingDocs = uploadedDocs.filter(d => d.status === 'pending')
   const approvedDocs = uploadedDocs.filter(d => d.status === 'approved')
 
   const stats = {
     totalUsers: users.length,
-    activeUsers: users.filter(u => u.status === 'active').length,
+    activeUsers: users.filter(u => u.active).length,
     totalDocuments: uploadedDocs.length,
     approvedDocs: approvedDocs.length,
     pendingApprovals: pendingDocs.length,
     totalCommunities: communities.length
   }
 
-  const handleAddUser = (e: React.FormEvent) => {
+  const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newUser.name || !newUser.email) {
-      push('Please fill in all fields')
+    
+    if (!newUser.name || !newUser.email || !newUser.password) {
+      push('❌ Please fill in all fields (name, email, password)')
       return
     }
 
-    const user: User = {
-      id: `user-${Date.now()}`,
-      name: newUser.name,
-      email: newUser.email,
-      role: newUser.role,
-      country: newUser.country,
-      joinDate: new Date().toLocaleDateString(),
-      status: 'active'
+    if (newUser.password.length < 6) {
+      push('❌ Password must be at least 6 characters')
+      return
     }
 
-    const updated = [...users, user]
-    setUsers(updated)
-    localStorage.setItem('dkn:admin-users', JSON.stringify(updated))
-
-    // Also save to registered users for login
+    setLoading(true)
     try {
-      const registeredUsers = JSON.parse(localStorage.getItem('dkn:registered-users') || '{}')
-      registeredUsers[newUser.email] = {
-        password: 'temppass123',
-        name: newUser.name,
-        role: newUser.role,
-        country: newUser.country
+      console.log('📤 Sending user registration request...', newUser)
+      const response = await fetch(`${API_BASE}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newUser.name,
+          email: newUser.email,
+          password: newUser.password,
+          role: newUser.role,
+          country: newUser.country
+        })
+      })
+
+      console.log('📥 Response status:', response.status)
+      const data = await response.json()
+      console.log('📥 Response data:', data)
+
+      if (response.ok) {
+        push(`✅ User "${newUser.name}" created successfully!`)
+        setNewUser({ name: '', email: '', password: '', role: 'Consultant', country: 'USA' })
+        setShowUserForm(false)
+        await fetchUsers()
+      } else {
+        const errorMsg = data.error || data.message || 'Failed to create user'
+        console.error('❌ API Error:', errorMsg)
+        push(`❌ Error: ${errorMsg}`)
       }
-      localStorage.setItem('dkn:registered-users', JSON.stringify(registeredUsers))
-    } catch {}
-
-    push(`✓ User "${newUser.name}" registered! | Temp password: temppass123`)
-    setNewUser({ name: '', email: '', role: 'Consultant', country: 'North America', status: 'active' })
-    setShowUserForm(false)
+    } catch (error) {
+      console.error('❌ Error creating user:', error)
+      push(`❌ Error creating user: ${error.message || BACKEND_HINT}`)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleDeactivateUser = (userId: string, userName: string) => {
-    const updated = users.map(u => u.id === userId ? { ...u, status: 'inactive' as const } : u)
-    setUsers(updated)
-    localStorage.setItem('dkn:admin-users', JSON.stringify(updated))
-    push(`User "${userName}" deactivated`)
-  }
+  const handleToggleUserStatus = async (userId: number, currentStatus: boolean) => {
+    try {
+      const response = await fetch(`${API_BASE}/api/users/${userId}/toggle-active`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' }
+      })
 
-  const handleActivateUser = (userId: string, userName: string) => {
-    const updated = users.map(u => u.id === userId ? { ...u, status: 'active' as const } : u)
-    setUsers(updated)
-    localStorage.setItem('dkn:admin-users', JSON.stringify(updated))
-    push(`User "${userName}" activated`)
+      if (response.ok) {
+        const newStatus = !currentStatus
+        push(`✅ User ${newStatus ? 'activated' : 'deactivated'} successfully`)
+        await fetchUsers()
+      } else {
+        push('❌ Error updating user status')
+      }
+    } catch (error) {
+      console.error('Error toggling user status:', error)
+      push('❌ Error updating user status')
+    }
   }
 
   const getRoleBadgeColor = (role: string) => {
@@ -235,64 +265,139 @@ export default function Admin() {
 
             {showUserForm && (
               <div style={{ background: 'white', border: '2px solid var(--gold)', borderRadius: '12px', padding: '24px', marginBottom: '24px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-                <h4 style={{ margin: '0 0 8px', color: 'var(--navy)', fontSize: '1.1rem' }}>Register New User</h4>
-                <p style={{ margin: '0 0 20px', color: 'var(--muted)', fontSize: '0.9rem' }}>Create user account and assign role</p>
+                <h4 style={{ margin: '0 0 8px', color: 'var(--navy)', fontSize: '1.1rem' }}>👤 Register New User</h4>
+                <p style={{ margin: '0 0 20px', color: 'var(--muted)', fontSize: '0.9rem' }}>Create user account and assign role - Users can login immediately</p>
                 <form onSubmit={handleAddUser}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px', marginBottom: '16px' }}>
-                    <input
-                      type="text"
-                      placeholder="Full Name"
-                      value={newUser.name}
-                      onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-                      required
-                      style={{ padding: '12px 14px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '0.95rem', fontWeight: '500' }}
-                    />
-                    <input
-                      type="email"
-                      placeholder="Email Address"
-                      value={newUser.email}
-                      onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                      required
-                      style={{ padding: '12px 14px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '0.95rem', fontWeight: '500' }}
-                    />
-                    <select
-                      value={newUser.role}
-                      onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-                      style={{ padding: '12px 14px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '0.95rem', fontWeight: '500' }}
-                    >
-                      <option value="NewHire">New Hire (Onboarding)</option>
-                      <option value="Consultant">Senior Consultant (Document Upload)</option>
-                      <option value="KnowledgeChampion">Knowledge Champion (Approval)</option>
-                      <option value="Administrator">Administrator (Full Control)</option>
-                    </select>
-                    <select
-                      value={newUser.country}
-                      onChange={(e) => setNewUser({ ...newUser, country: e.target.value })}
-                      style={{ padding: '12px 14px', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '0.95rem', fontWeight: '500' }}
-                    >
-                      <option value="North America">North America</option>
-                      <option value="Europe">Europe</option>
-                      <option value="Asia">Asia</option>
-                    </select>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '16px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--navy)', marginBottom: '6px' }}>Full Name *</label>
+                      <input
+                        type="text"
+                        placeholder="e.g., John Smith"
+                        value={newUser.name}
+                        onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                        required
+                        style={{ 
+                          width: '100%',
+                          padding: '12px 14px', 
+                          border: '1px solid #d1d5db', 
+                          borderRadius: '8px', 
+                          fontSize: '0.95rem',
+                          boxSizing: 'border-box',
+                          fontFamily: 'inherit'
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--navy)', marginBottom: '6px' }}>Email Address *</label>
+                      <input
+                        type="email"
+                        placeholder="e.g., john@company.com"
+                        value={newUser.email}
+                        onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                        required
+                        style={{ 
+                          width: '100%',
+                          padding: '12px 14px', 
+                          border: '1px solid #d1d5db', 
+                          borderRadius: '8px', 
+                          fontSize: '0.95rem',
+                          boxSizing: 'border-box',
+                          fontFamily: 'inherit'
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--navy)', marginBottom: '6px' }}>Password *</label>
+                      <input
+                        type="password"
+                        placeholder="Min 6 characters"
+                        value={newUser.password}
+                        onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                        required
+                        minLength={6}
+                        style={{ 
+                          width: '100%',
+                          padding: '12px 14px', 
+                          border: '1px solid #d1d5db', 
+                          borderRadius: '8px', 
+                          fontSize: '0.95rem',
+                          boxSizing: 'border-box',
+                          fontFamily: 'inherit'
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--navy)', marginBottom: '6px' }}>User Role *</label>
+                      <select
+                        value={newUser.role}
+                        onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                        style={{ 
+                          width: '100%',
+                          padding: '12px 14px', 
+                          border: '1px solid #d1d5db', 
+                          borderRadius: '8px', 
+                          fontSize: '0.95rem',
+                          boxSizing: 'border-box',
+                          fontFamily: 'inherit',
+                          background: 'white',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <option value="NewHire">🆕 New Hire (Onboarding)</option>
+                        <option value="Consultant">👔 Consultant (Document Upload)</option>
+                        <option value="KnowledgeChampion">🏆 Knowledge Champion (Approvals)</option>
+                        <option value="Administrator">⚙️ Administrator (Full Control)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--navy)', marginBottom: '6px' }}>Country</label>
+                      <select
+                        value={newUser.country}
+                        onChange={(e) => setNewUser({ ...newUser, country: e.target.value })}
+                        style={{ 
+                          width: '100%',
+                          padding: '12px 14px', 
+                          border: '1px solid #d1d5db', 
+                          borderRadius: '8px', 
+                          fontSize: '0.95rem',
+                          boxSizing: 'border-box',
+                          fontFamily: 'inherit',
+                          background: 'white',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <option value="USA">🇺🇸 USA</option>
+                        <option value="Europe">🇪🇺 Europe</option>
+                        <option value="Asia">🌏 Asia</option>
+                      </select>
+                    </div>
                   </div>
+
+                  <div style={{ padding: '12px', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '8px', marginBottom: '16px', fontSize: '0.85rem', color: '#b45309' }}>
+                    📝 User will be able to login immediately after creation with their email and password.
+                  </div>
+
                   <button
                     type="submit"
+                    disabled={loading}
                     style={{
                       width: '100%',
                       padding: '12px',
-                      background: 'var(--navy)',
+                      background: loading ? '#d1d5db' : 'var(--navy)',
                       color: 'white',
                       border: 'none',
                       borderRadius: '8px',
                       fontWeight: 700,
-                      cursor: 'pointer',
+                      cursor: loading ? 'not-allowed' : 'pointer',
                       fontSize: '0.95rem',
-                      transition: 'all 0.2s'
+                      transition: 'all 0.2s',
+                      opacity: loading ? 0.7 : 1
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = '#1a3a5c')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--navy)')}
+                    onMouseEnter={(e) => { if (!loading) e.currentTarget.style.background = '#1a3a5c' }}
+                    onMouseLeave={(e) => { if (!loading) e.currentTarget.style.background = 'var(--navy)' }}
                   >
-                    Register User
+                    {loading ? '⏳ Creating User...' : '✓ Create User'}
                   </button>
                 </form>
               </div>
@@ -327,28 +432,31 @@ export default function Admin() {
                               {u.role}
                             </span>
                           </td>
-                          <td style={{ padding: '16px', color: 'var(--muted)', fontSize: '0.9rem' }}>{u.country}</td>
+                          <td style={{ padding: '16px', color: 'var(--muted)', fontSize: '0.9rem' }}>{u.country || 'N/A'}</td>
                           <td style={{ padding: '16px' }}>
-                            <span style={{ background: u.status === 'active' ? '#ecfdf5' : '#fef2f2', color: u.status === 'active' ? '#059669' : '#dc2626', padding: '4px 12px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 600 }}>
-                              {u.status}
+                            <span style={{ background: u.active ? '#ecfdf5' : '#fef2f2', color: u.active ? '#059669' : '#dc2626', padding: '4px 12px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 600 }}>
+                              {u.active ? '✓ Active' : '✕ Inactive'}
                             </span>
                           </td>
                           <td style={{ padding: '16px', textAlign: 'center' }}>
-                            {u.status === 'active' ? (
-                              <button
-                                onClick={() => handleDeactivateUser(u.id, u.name)}
-                                style={{ padding: '6px 12px', background: '#fecaca', color: '#dc2626', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
-                              >
-                                Deactivate
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => handleActivateUser(u.id, u.name)}
-                                style={{ padding: '6px 12px', background: '#d1fae5', color: '#059669', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
-                              >
-                                Activate
-                              </button>
-                            )}
+                            <button
+                              onClick={() => handleToggleUserStatus(u.id, u.active)}
+                              style={{ 
+                                padding: '6px 12px', 
+                                background: u.active ? '#fecaca' : '#d1fae5', 
+                                color: u.active ? '#dc2626' : '#059669', 
+                                border: 'none', 
+                                borderRadius: '6px', 
+                                cursor: 'pointer', 
+                                fontSize: '0.8rem', 
+                                fontWeight: 600,
+                                transition: 'all 0.2s'
+                              }}
+                              onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                              onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                            >
+                              {u.active ? 'Deactivate' : 'Activate'}
+                            </button>
                           </td>
                         </tr>
                       ))}

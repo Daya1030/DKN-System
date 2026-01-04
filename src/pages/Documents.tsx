@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { fetchDocuments } from '../api'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
@@ -25,6 +25,7 @@ export default function Documents(){
   const [formData, setFormData] = useState({ title: '', description: '', fileName: '', tags: '' })
   const { user, role } = useAuth()
   const { push } = useToast()
+  const navigate = useNavigate()
 
   const canApprove = role === 'KnowledgeChampion' || role === 'Administrator'
   const pendingDocs = uploadedDocs.filter(d => d.status === 'pending' && d.uploadedByRole !== role)
@@ -91,6 +92,16 @@ export default function Documents(){
     push(`Document "${docTitle}" rejected`)
   }
 
+  const handleDeleteDocument = (docId: string, docTitle: string) => {
+    const confirmed = window.confirm(`Are you sure you want to delete "${docTitle}"? This action cannot be undone.`)
+    if (!confirmed) return
+
+    const updated = uploadedDocs.filter(d => d.id !== docId)
+    setUploadedDocs(updated)
+    localStorage.setItem('dkn:uploaded-docs', JSON.stringify(updated))
+    push(`✅ Document "${docTitle}" deleted successfully`)
+  }
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -155,9 +166,11 @@ export default function Documents(){
       <section>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <h3 style={{ margin: 0, color: 'var(--navy)' }}>Documents</h3>
-          <button onClick={() => setShowUpload(!showUpload)} style={{ padding: '10px 20px', background: 'var(--gold)', color: 'var(--navy)', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', transition: 'transform 0.2s' }} onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')} onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}>
-            {showUpload ? '✕ Close' : '+ Upload Document'}
-          </button>
+          {role !== 'NewHire' && (
+            <button onClick={() => setShowUpload(!showUpload)} style={{ padding: '10px 20px', background: 'var(--gold)', color: 'var(--navy)', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', transition: 'transform 0.2s' }} onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')} onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}>
+              {showUpload ? '✕ Close' : '+ Upload Document'}
+            </button>
+          )}
         </div>
 
         {showUpload && (
@@ -227,7 +240,9 @@ export default function Documents(){
               <div key={doc.id} className="card" style={{ padding: '16px', borderLeft: `4px solid ${doc.status === 'approved' ? '#34d399' : doc.status === 'rejected' ? '#ef4444' : '#f6c85f'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                    <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--navy)' }}>{doc.title}</div>
+                    <div onClick={() => navigate(`/documents/${doc.id}`)} style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--navy)', cursor: 'pointer', transition: 'color 0.2s' }} onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--gold)')} onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--navy)')}>
+                      {doc.title}
+                    </div>
                     <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700, background: doc.status === 'approved' ? '#d1fae5' : doc.status === 'rejected' ? '#fee2e2' : '#fef3c7', color: doc.status === 'approved' ? '#065f46' : doc.status === 'rejected' ? '#7f1d1d' : '#92400e' }}>
                       {doc.status.toUpperCase()}
                     </span>
@@ -257,6 +272,11 @@ export default function Documents(){
                   <button onClick={() => handleDownloadFile(doc.fileName)} title="Download file" style={{ padding: '8px 12px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem', whiteSpace: 'nowrap', transition: 'transform 0.2s' }} onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')} onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}>
                     ⬇️ Download
                   </button>
+                  {role === 'Administrator' && (
+                    <button onClick={() => handleDeleteDocument(doc.id, doc.title)} title="Delete document" style={{ padding: '8px 12px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem', whiteSpace: 'nowrap', transition: 'transform 0.2s' }} onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')} onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}>
+                      🗑️ Delete
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -272,7 +292,9 @@ export default function Documents(){
               <div key={doc.id} className="card" style={{ padding: '16px', background: 'white', borderLeft: '4px solid #f6c85f' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--navy)', marginBottom: 4 }}>{doc.title}</div>
+                    <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--navy)', marginBottom: 4, cursor: 'pointer', transition: 'color 0.2s' }} onClick={() => navigate(`/documents/${doc.id}`)} onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--gold)')} onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--navy)')}>
+                      {doc.title}
+                    </div>
                     <p style={{ margin: '4px 0', color: 'var(--muted)', fontSize: '0.9rem' }}>{doc.description}</p>
                     <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 8, fontSize: '0.85rem', color: 'var(--muted)' }}>
                       <span>👤 {doc.uploadedBy} ({doc.uploadedByRole})</span>
@@ -332,6 +354,11 @@ export default function Documents(){
                   <button onClick={() => handleDownloadFile(d.fileName)} title="Download file" style={{ padding: '8px 12px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem', whiteSpace: 'nowrap', transition: 'transform 0.2s' }} onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')} onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}>
                     ⬇️ Download
                   </button>
+                  {role === 'Administrator' && (
+                    <button onClick={() => handleDeleteDocument(d.id, d.title)} title="Delete document" style={{ padding: '8px 12px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem', whiteSpace: 'nowrap', transition: 'transform 0.2s' }} onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')} onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}>
+                      🗑️ Delete
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

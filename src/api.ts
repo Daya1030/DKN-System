@@ -15,10 +15,15 @@ export async function fetchDocuments(): Promise<DocumentSummary[]> {
 }
 
 export async function fetchProjects() {
-  return Promise.resolve([
-    { id: 'p1', name: 'Client Alpha', description: 'Migration and knowledge capture' },
-    { id: 'p2', name: 'Client Beta', description: 'Operational excellence' }
-  ])
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'
+  try {
+    const response = await fetch(`${API_BASE}/api/projects`)
+    if (!response.ok) throw new Error('Failed to fetch projects')
+    return await response.json()
+  } catch (error) {
+    console.error('Error fetching projects:', error)
+    return []
+  }
 }
 
 export async function fetchDocumentById(id: string) {
@@ -47,10 +52,15 @@ export async function fetchProjectById(id: string) {
 }
 
 export async function fetchCommunities() {
-  return Promise.resolve([
-    { id: 'c1', name: 'Migration Experts', members: 42 },
-    { id: 'c2', name: 'Governance Forum', members: 18 }
-  ])
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'
+  try {
+    const response = await fetch(`${API_BASE}/api/communities`)
+    if (!response.ok) throw new Error('Failed to fetch communities')
+    return await response.json()
+  } catch (error) {
+    console.error('Error fetching communities:', error)
+    return []
+  }
 }
 
 export async function fetchAnalytics() {

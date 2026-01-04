@@ -8,15 +8,20 @@ import Footer from './components/Footer'
 import { AuthProvider } from './contexts/AuthContext'
 import { ToastProvider } from './contexts/ToastContext'
 import Communities from './pages/Communities'
+import GroupDetail from './pages/GroupDetail'
+import Questions from './pages/Questions'
 import Analytics from './pages/Analytics'
 import Governance from './pages/Governance'
 import Notifications from './pages/Notifications'
 import Dashboard from './pages/Dashboard'
 import Admin from './pages/Admin'
+import AdminChat from './pages/AdminChat'
+import ConsultantChat from './pages/ConsultantChat'
 import DocumentDetail from './pages/DocumentDetail'
 import ProjectDetail from './pages/ProjectDetail'
 import LoginPage from './pages/LoginPage'
 import SignupPage from './pages/SignupPage'
+import Profile from './pages/Profile'
 import RequireRole from './components/RequireRole'
 import RequireAuth from './components/RequireAuth'
 
@@ -33,11 +38,16 @@ function AppLayout() {
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<RequireAuth><RequireRole roles={["NewHire","Consultant","KnowledgeChampion","Administrator"]}><Dashboard /></RequireRole></RequireAuth>} />
+        <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
+        <Route path="/admin-chat" element={<RequireAuth><RequireRole roles={["Administrator","KnowledgeChampion"]}><AdminChat /></RequireRole></RequireAuth>} />
+        <Route path="/consultant-chat" element={<RequireAuth><RequireRole roles={["Consultant","KnowledgeChampion","Administrator"]}><ConsultantChat /></RequireRole></RequireAuth>} />
         <Route path="/projects" element={<RequireAuth><Projects /></RequireAuth>} />
         <Route path="/projects/:id" element={<RequireAuth><ProjectDetail /></RequireAuth>} />
         <Route path="/documents" element={<RequireAuth><Documents /></RequireAuth>} />
         <Route path="/documents/:id" element={<RequireAuth><DocumentDetail /></RequireAuth>} />
         <Route path="/communities" element={<RequireAuth><Communities /></RequireAuth>} />
+        <Route path="/group/:groupId" element={<RequireAuth><GroupDetail /></RequireAuth>} />
+        <Route path="/questions" element={<RequireAuth><Questions /></RequireAuth>} />
         <Route path="/analytics" element={<RequireAuth><Analytics /></RequireAuth>} />
         <Route path="/notifications" element={<RequireAuth><Notifications /></RequireAuth>} />
         <Route path="/governance" element={<RequireAuth><RequireRole roles={["Administrator","KnowledgeChampion"]}><Governance /></RequireRole></RequireAuth>} />

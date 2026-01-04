@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { fetchProjects } from '../api'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
@@ -20,6 +20,7 @@ export default function Projects(){
   const [formData, setFormData] = useState({ title: '', description: '', plan: '' })
   const { role, user } = useAuth()
   const { push } = useToast()
+  const navigate = useNavigate()
 
   const canAddProject = role === 'KnowledgeChampion' || role === 'Administrator'
 
@@ -76,6 +77,23 @@ export default function Projects(){
     setShowForm(false)
   }
 
+  const handleDeleteProject = (projectId: string, projectName: string) => {
+    const confirmed = window.confirm(`Are you sure you want to delete "${projectName}"? This action cannot be undone.`)
+    if (!confirmed) return
+
+    // Remove from projects state
+    const updated = projects.filter(p => p.id !== projectId)
+    setProjects(updated)
+
+    // Remove from localStorage if it's a custom project
+    if (projectId.startsWith('project-')) {
+      const customProjects = updated.filter(p => p.id.startsWith('project-'))
+      localStorage.setItem('dkn:projects', JSON.stringify(customProjects))
+    }
+
+    push(`✅ Project "${projectName}" deleted successfully`)
+  }
+
   return (
     <>
       <section>
@@ -104,7 +122,8 @@ export default function Projects(){
                   placeholder="e.g., Mobile App Modernization"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  style={{ width: '100%', padding: '12px', border: '1px solid #e0e7ff', borderRadius: '8px', fontSize: '0.95rem', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '12px', border: '1px solid #e0e7ff', borderRadius: '8px', fontSize: '0.95rem', 
+                    boxSizing: 'border-box' }}
                 />
               </div>
 
@@ -114,7 +133,8 @@ export default function Projects(){
                   placeholder="Add a detailed description of the project..."
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  style={{ width: '100%', padding: '12px', border: '1px solid #e0e7ff', borderRadius: '8px', fontSize: '0.95rem', minHeight: '100px', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '12px', border: '1px solid #e0e7ff', borderRadius: '8px', fontSize: '0.95rem', 
+                    minHeight: '100px', fontFamily: 'inherit', boxSizing: 'border-box' }}
                 />
               </div>
 
@@ -123,7 +143,8 @@ export default function Projects(){
                 <select
                   value={formData.plan}
                   onChange={(e) => setFormData({ ...formData, plan: e.target.value })}
-                  style={{ width: '100%', padding: '12px', border: '1px solid #e0e7ff', borderRadius: '8px', fontSize: '0.95rem', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '12px', border: '1px solid #e0e7ff', borderRadius: '8px', fontSize: '0.95rem', 
+                    boxSizing: 'border-box' }}
                 >
                   <option value="">Select a plan...</option>
                   <option value="Q1">Q1 - First Quarter</option>
@@ -161,11 +182,9 @@ export default function Projects(){
               <div key={p.id} className="card" style={{ padding: '16px', borderLeft: '4px solid var(--gold)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                   <div style={{ flex: 1 }}>
-                    <Link to={`/projects/${p.id}`} style={{ textDecoration: 'none' }}>
-                      <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--navy)', cursor: 'pointer', transition: 'color 0.2s' }} onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--gold)')} onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--navy)')}>
-                        {p.name}
-                      </div>
-                    </Link>
+                  <div onClick={() => navigate(`/projects/${p.id}`)} style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--navy)', cursor: 'pointer', transition: 'color 0.2s' }} onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--gold)')} onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--navy)')}>
+                    {p.name}
+                  </div>
                     <p style={{ margin: '8px 0', color: 'var(--muted)', fontSize: '0.9rem' }}>{p.description}</p>
                     <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginTop: 8, fontSize: '0.85rem', color: 'var(--muted)' }}>
                       <span>📅 Plan: <strong>{p.plan}</strong></span>
@@ -175,6 +194,11 @@ export default function Projects(){
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                     <span style={{ padding: '4px 12px', background: '#d1fae5', color: '#065f46', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 600 }}>✓ Active</span>
+                    {role === 'Administrator' && (
+                      <button onClick={() => handleDeleteProject(p.id, p.name)} title="Delete project" style={{ padding: '6px 12px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem', transition: 'transform 0.2s' }} onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')} onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}>
+                        🗑️ Delete
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

@@ -38,19 +38,10 @@ export default function Header(){
         <Help />
         <Login />
         {user ? (
-          <NavLink to="/dashboard" className="user-link" title="Dashboard">
+          <NavLink to="/profile" className="user-link" title="My Profile">
             <div className="user-avatar">{user.name.slice(0,1).toUpperCase()}</div>
           </NavLink>
         ) : null}
-        <div className="role-group">
-          <label htmlFor="role-select">Role</label>
-          <select className="role-select" id="role-select" aria-label="Select role" value={role} onChange={(e) => setRole(e.target.value as any)}>
-            <option value="NewHire">New Hire</option>
-            <option value="Consultant">Consultant</option>
-            <option value="KnowledgeChampion">Knowledge Champion</option>
-            <option value="Administrator">Administrator</option>
-          </select>
-        </div>
       </div>
     </header>
   )
